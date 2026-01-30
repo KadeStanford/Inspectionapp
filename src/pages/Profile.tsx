@@ -16,7 +16,9 @@ import {
   Security as SecurityIcon,
   Person as PersonIcon
 } from '@mui/icons-material';
-import { updateProfile, updatePassword, getUserProfile } from '../services/api';
+import { updateProfile, getUserProfile } from '../services/api';
+import { auth } from '../services/firebase';
+import { updatePassword as firebaseUpdatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 
 interface UserData {
   name: string;
@@ -151,7 +153,18 @@ const Profile: React.FC = () => {
     setPasswordLoading(true);
 
     try {
-      await updatePassword(passwordData.currentPassword, passwordData.newPassword);
+      const user = auth?.currentUser;
+      if (!user || !user.email) {
+        throw new Error('No authenticated user found. Please log in again.');
+      }
+
+      // Re-authenticate the user first
+      const credential = EmailAuthProvider.credential(user.email, passwordData.currentPassword);
+      await reauthenticateWithCredential(user, credential);
+
+      // Now update the password
+      await firebaseUpdatePassword(user, passwordData.newPassword);
+      
       setPasswordSuccess('Password updated successfully!');
       setPasswordData({
         currentPassword: '',
@@ -159,7 +172,16 @@ const Profile: React.FC = () => {
         confirmPassword: ''
       });
     } catch (err: any) {
-      setPasswordError(err.response?.data?.error || 'Failed to update password');
+      console.error('Password update error:', err);
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setPasswordError('Current password is incorrect');
+      } else if (err.code === 'auth/weak-password') {
+        setPasswordError('New password is too weak. Please choose a stronger password.');
+      } else if (err.code === 'auth/requires-recent-login') {
+        setPasswordError('Please log out and log back in before changing your password.');
+      } else {
+        setPasswordError(err.message || 'Failed to update password');
+      }
     } finally {
       setPasswordLoading(false);
     }

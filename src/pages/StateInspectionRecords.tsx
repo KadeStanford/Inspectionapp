@@ -70,51 +70,39 @@ const StateInspectionRecords: React.FC = () => {
     loadData();
   }, []);
 
-  const loadData = useCallback(async (page = 1, pageSize = 50, resetPage = false) => {
+  const loadData = useCallback(async (page = 1, pageSize = 50) => {
     setLoading(true);
     setError(null);
     
-    const result = await handleApiCall(
-      async () => {
-        const [recordsResponse, fleetAccountsData, statsData] = await Promise.all([
-          getStateInspectionRecords({}, { page, pageSize }),
-          getFleetAccounts(),
-          getStateInspectionStats()
-        ]);
-        
-        console.log('Loaded records response:', recordsResponse);
-        console.log('Loaded fleet accounts data:', fleetAccountsData);
-        console.log('Loaded stats data:', statsData);
-        
-        return { recordsResponse, fleetAccountsData, statsData };
-      },
-      {
-        successMessage: page === 1 ? 'State inspection data loaded successfully' : 'Page loaded successfully',
-        errorMessage: 'Failed to load state inspection data',
-        showSuccessNotification: false, // Don't show success for routine data loading
-      }
-    );
-
-    if (result) {
-      const { recordsResponse, fleetAccountsData, statsData } = result;
+    try {
+      const [recordsResponse, fleetAccountsData, statsData] = await Promise.all([
+        getStateInspectionRecords({}, { page, pageSize }),
+        getFleetAccounts(),
+        getStateInspectionStats()
+      ]);
+      
+      console.log('Loaded records response:', recordsResponse);
+      console.log('Loaded fleet accounts data:', fleetAccountsData);
+      console.log('Loaded stats data:', statsData);
       
       // Handle paginated response
-      if ('data' in recordsResponse) {
+      if (recordsResponse && 'data' in recordsResponse) {
         const paginatedData = recordsResponse as PaginatedResponse<StateInspectionRecord>;
         setPaginatedRecords(paginatedData.data, paginatedData.total, paginatedData.page, paginatedData.pageSize);
       } else {
         // Backward compatibility - non-paginated response
-        setRecords(recordsResponse as StateInspectionRecord[]);
+        setRecords((recordsResponse || []) as StateInspectionRecord[]);
       }
       
-      setFleetAccounts(fleetAccountsData);
-      setStats(statsData);
-    } else {
+      setFleetAccounts(fleetAccountsData || []);
+      setStats(statsData || { total: 0, passed: 0, failed: 0 });
+    } catch (err: any) {
+      console.error('Failed to load state inspection data:', err);
       setError('Failed to load data. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
-  }, [setPaginatedRecords, setRecords, setFleetAccounts, setStats, setLoading, setError, handleApiCall]);
+  }, [setPaginatedRecords, setRecords, setFleetAccounts, setStats, setLoading, setError]);
 
   const handleRecordCreated = () => {
     // Show success notification

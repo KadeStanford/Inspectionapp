@@ -116,7 +116,8 @@ const UsersContent: React.FC = () => {
   };
 
   const getRoleColor = (role: string) => {
-    switch (role) {
+    const normalizedRole = normalizeRole(role);
+    switch (normalizedRole) {
       case 'Admin':
         return 'error';
       case 'Service advisor':
@@ -126,6 +127,16 @@ const UsersContent: React.FC = () => {
       default:
         return 'default';
     }
+  };
+
+  // Normalize role from database to match Select options
+  const normalizeRole = (role: string): string => {
+    if (!role) return 'Technician';
+    const lowerRole = role.toLowerCase();
+    if (lowerRole === 'admin') return 'Admin';
+    if (lowerRole === 'service advisor' || lowerRole === 'serviceadvisor' || lowerRole === 'service_advisor') return 'Service advisor';
+    if (lowerRole === 'technician') return 'Technician';
+    return 'Technician'; // Default fallback
   };
 
   if (loading) {
@@ -175,7 +186,7 @@ const UsersContent: React.FC = () => {
                   <TableCell>
                     <FormControl size="small" sx={{ minWidth: 120 }}>
                       <Select
-                        value={user.role}
+                        value={normalizeRole(user.role)}
                         onChange={(e) => handleUpdateRole(user, e.target.value)}
                         sx={{ 
                           '& .MuiSelect-select': { 

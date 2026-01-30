@@ -2224,30 +2224,9 @@ const ShopMonkey: React.FC = () => {
           console.log(`🔍 Decoding VIN: ${vin}`);
           const decodedData = await decodeVinCached(vin);
           
-          if (decodedData && decodedData.Results && Array.isArray(decodedData.Results)) {
-            const getValue = (variable: string) => {
-              const result = decodedData.Results.find((r: any) => r.Variable === variable);
-              return result && result.Value && result.Value !== 'Not Available' ? result.Value : null;
-            };
-            
-            const transformedDecodedDetails = {
-              year: getValue('Model Year'),
-              make: getValue('Make'),
-              model: getValue('Model'),
-              engine: getValue('Engine Configuration'),
-              engineL: getValue('Displacement (L)'),
-              engineCylinders: getValue('Engine Number of Cylinders'),
-              trim: getValue('Trim'),
-              bodyType: getValue('Body Class'),
-              bodyClass: getValue('Body Class'),
-              driveType: getValue('Drive Type'),
-              transmission: getValue('Transmission Style'),
-              fuelType: getValue('Fuel Type - Primary'),
-              manufacturer: getValue('Manufacturer Name'),
-              plant: getValue('Plant Company Name'),
-              vehicleType: getValue('Vehicle Type'),
-              ...decodedData
-            };
+          if (decodedData && !('error' in decodedData)) {
+            // The data is already transformed by the service
+            const transformedDecodedDetails = { ...decodedData };
             
             // Store the decoded VIN data
             setPreDecodedVins(prev => ({
@@ -2256,7 +2235,7 @@ const ShopMonkey: React.FC = () => {
             }));
             
             successCount++;
-            console.log(`✅ VIN decoded successfully: ${vin} (${getValue('Make')} ${getValue('Model')})`);
+            console.log(`✅ VIN decoded successfully: ${vin} (${decodedData.make} ${decodedData.model})`);
           } else {
             console.log(`⚠️ VIN decode returned empty data: ${vin}`);
             errorCount++;

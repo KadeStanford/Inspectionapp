@@ -1,4 +1,5 @@
-import axios from 'axios';
+import { db } from './firebase';
+import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, getDoc, query, orderBy } from 'firebase/firestore';
 import { 
   BankDeposit, 
   DrawerCount, 
@@ -7,151 +8,105 @@ import {
   CashManagementFilters 
 } from '../types/cashManagement';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
-  `${window.location.protocol === 'https:' ? 'https' : 'http'}://${window.location.hostname}:5001`;
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  withCredentials: true,
-});
-
-// Add auth token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// Add a response interceptor to handle errors
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized access
-      localStorage.removeItem('token');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
 // Bank Deposit API
 export const submitBankDeposit = async (deposit: Omit<BankDeposit, 'id' | 'timestamp' | 'userId' | 'userName'>): Promise<BankDeposit> => {
-  const response = await api.post('/api/cash-management/bank-deposits', deposit);
-  return response.data;
+  if (!db) throw new Error("Firebase not initialized");
+  
+  const newDeposit = {
+    ...deposit,
+    timestamp: new Date().toISOString(), 
+    userId: 'current-user-id', // Replace with auth.currentUser?.uid
+    userName: 'Current User', // Replace with auth.currentUser?.displayName
+  };
+
+  const docRef = await addDoc(collection(db, 'bank_deposits'), newDeposit);
+  return { id: docRef.id, ...newDeposit };
 };
 
 export const getBankDeposits = async (filters?: CashManagementFilters): Promise<BankDeposit[]> => {
-  const response = await api.get('/api/cash-management/bank-deposits', { params: filters });
-  return response.data;
+  if (!db) throw new Error("Firebase not initialized");
+  
+  const q = query(collection(db, 'bank_deposits'), orderBy('timestamp', 'desc'));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as BankDeposit[];
+};
+import { uploadImageToServer, getDisplayUrl } from './imageUpload';
+
+export const uploadDepositImages = async (files: File[]): Promise<string[]> => {
+  const uploadPromises = files.map(file => uploadImageToServer(file, 'deposits'));
+  const results = await Promise.all(uploadPromises);
+  return results.filter(r => r.success).map(r => getDisplayUrl(r));
+};
+export const deleteBankDeposit = async (id: string) => {
+    if (!db) throw new Error("Firebase not initialized");
+    await deleteDoc(doc(db, 'bank_deposits', id));
 };
 
-export const getBankDepositById = async (id: number): Promise<BankDeposit> => {
-  const response = await api.get(`/api/cash-management/bank-deposits/${id}`);
-  return response.data;
+// Helper functions
+export const calculateTotalCash = (counts: any[]): number => {
+    return counts.reduce((acc, curr) => acc + (Number(curr.value || 0) * Number(curr.count || 0)), 0);
 };
 
-export const deleteBankDeposit = async (id: number): Promise<void> => {
-  await api.delete(`/api/cash-management/bank-deposits/${id}`);
+export const calculateCashOut = (start: number, end: number): number => end - start;
+
+// Drawer Counts API
+export const submitDrawerCount = async (count: any): Promise<DrawerCount> => {
+   if (!db) throw new Error("Firebase not initialized");
+   const newCount = {
+       ...count,
+       timestamp: new Date().toISOString(),
+       userId: 'current-user-id',
+       userName: 'Current User'
+   };
+   const docRef = await addDoc(collection(db, 'drawer_counts'), newCount);
+   return { id: docRef.id, ...newCount } as DrawerCount;
 };
 
-// Drawer Count API
-export const submitDrawerCount = async (drawerCount: Omit<DrawerCount, 'id' | 'timestamp' | 'userId' | 'userName'>): Promise<DrawerCount> => {
-  const response = await api.post('/api/cash-management/drawer-counts', drawerCount);
-  return response.data;
+export const getDrawerCounts = async (filters?: any): Promise<DrawerCount[]> => {
+    if (!db) throw new Error("Firebase not initialized");
+    const q = query(collection(db, 'drawer_counts'), orderBy('timestamp', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as DrawerCount[];
 };
 
-export const getDrawerCounts = async (filters?: CashManagementFilters): Promise<DrawerCount[]> => {
-  const response = await api.get('/api/cash-management/drawer-counts', { params: filters });
-  return response.data;
+export const updateDrawerCount = async (id: string, updates: any) => {
+    if (!db) throw new Error("Firebase not initialized");
+    await updateDoc(doc(db, 'drawer_counts', id), updates);
 };
 
-export const getDrawerCountById = async (id: number): Promise<DrawerCount> => {
-  const response = await api.get(`/api/cash-management/drawer-counts/${id}`);
-  return response.data;
-};
-
-export const deleteDrawerCount = async (id: number): Promise<void> => {
-  await api.delete(`/api/cash-management/drawer-counts/${id}`);
-};
-
-export const updateDrawerCount = async (id: number, drawerCount: Partial<DrawerCount>): Promise<DrawerCount> => {
-  const response = await api.put(`/api/cash-management/drawer-counts/${id}`, drawerCount);
-  return response.data;
+export const deleteDrawerCount = async (id: string) => {
+    if (!db) throw new Error("Firebase not initialized");
+    await deleteDoc(doc(db, 'drawer_counts', id));
 };
 
 // Drawer Settings API
 export const getDrawerSettings = async (): Promise<DrawerSettings[]> => {
-  const response = await api.get('/api/cash-management/drawer-settings');
-  return response.data;
+    if (!db) throw new Error("Firebase not initialized");
+    const snapshot = await getDocs(collection(db, 'drawer_settings'));
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as DrawerSettings[];
 };
 
-export const createDrawerSettings = async (settings: Omit<DrawerSettings, 'createdAt' | 'updatedAt'>): Promise<DrawerSettings> => {
-  const response = await api.post('/api/cash-management/drawer-settings', settings);
-  return response.data;
+export const createDrawerSettings = async (settings: any): Promise<DrawerSettings> => {
+    if (!db) throw new Error("Firebase not initialized");
+    const docRef = await addDoc(collection(db, 'drawer_settings'), settings);
+    return { id: docRef.id, ...settings } as DrawerSettings;
 };
 
-export const updateDrawerSettings = async (id: string, settings: Partial<DrawerSettings>): Promise<DrawerSettings> => {
-  const response = await api.put(`/api/cash-management/drawer-settings/${id}`, settings);
-  return response.data;
+export const updateDrawerSettings = async (id: string, updates: any) => {
+    if (!db) throw new Error("Firebase not initialized");
+    await updateDoc(doc(db, 'drawer_settings', id), updates);
 };
 
-export const deleteDrawerSettings = async (id: string): Promise<void> => {
-  await api.delete(`/api/cash-management/drawer-settings/${id}`);
+export const deleteDrawerSettings = async (id: string) => {
+    if (!db) throw new Error("Firebase not initialized");
+    await deleteDoc(doc(db, 'drawer_settings', id));
 };
 
-// Analytics API
-export const getCashAnalytics = async (filters?: CashManagementFilters): Promise<CashAnalytics> => {
-  const response = await api.get('/api/cash-management/analytics', { params: filters });
-  return response.data;
+export const getCashAnalytics = async (filters: any): Promise<CashAnalytics> => {
+    return {
+        totalDeposits: 0,
+        totalDrawerCounts: 0,
+        totalVariance: 0,
+        averageDeposit: 0
+    } as unknown as CashAnalytics; 
 };
-
-// Image upload for bank deposits
-export const uploadDepositImages = async (files: File[]): Promise<string[]> => {
-  const formData = new FormData();
-  files.forEach((file, index) => {
-    formData.append(`images`, file);
-  });
-
-  const response = await api.post('/api/cash-management/upload-images', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
-  
-  return response.data.filenames;
-};
-
-// Utility functions
-export const calculateTotalCash = (denominations: any): number => {
-  const values = {
-    pennies: 0.01,
-    nickels: 0.05,
-    dimes: 0.10,
-    quarters: 0.25,
-    ones: 1.00,
-    fives: 5.00,
-    tens: 10.00,
-    twenties: 20.00,
-    fifties: 50.00,
-    hundreds: 100.00,
-  };
-
-  return Object.entries(denominations).reduce((total, [key, quantity]) => {
-    return total + (values[key as keyof typeof values] || 0) * (quantity as number);
-  }, 0);
-};
-
-export const calculateCashOut = (current: any, target: any): any => {
-  const cashOut: any = {};
-  
-  Object.keys(current).forEach(key => {
-    const currentAmount = current[key] || 0;
-    const targetAmount = target[key] || 0;
-    cashOut[key] = Math.max(0, currentAmount - targetAmount);
-  });
-  
-  return cashOut;
-}; 

@@ -837,6 +837,22 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </Avatar>
           </IconButton>
           <IconButton
+            onClick={handleLogoutClick}
+            title="Logout"
+            sx={{
+              width: 40,
+              height: 40,
+              backgroundColor: '#d32f2f',
+              color: 'white',
+              mr: 1,
+              '&:hover': {
+                backgroundColor: '#b71c1c',
+              }
+            }}
+          >
+            <LogoutIcon />
+          </IconButton>
+          <IconButton
             onClick={handleRefresh}
             sx={{
               width: 40,

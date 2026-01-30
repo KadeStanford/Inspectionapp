@@ -73,26 +73,8 @@ const RecordDeckView: React.FC<RecordDeckViewProps> = ({ records, fleetAccounts,
 
   const { removeRecord, setError } = useStateInspectionStore();
 
-  // Apply filters and search with debouncing
-  const applyFiltersAndSearch = useCallback(() => {
-    const currentFilters = { ...filters };
-    if (searchTerm) {
-      // Add search term to filters for server-side processing
-      currentFilters.stickerNumber = searchTerm;
-    }
-    
-    // Reset to page 1 when filters change
-    onPageChange(1, pagination.pageSize);
-  }, [filters, searchTerm, onPageChange, pagination.pageSize]);
-
-  // Auto-apply filters when they change (with debouncing)
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      applyFiltersAndSearch();
-    }, 500); // 500ms debounce
-
-    return () => clearTimeout(timer);
-  }, [applyFiltersAndSearch]);
+  // NOTE: Auto-refresh on filter change has been disabled to prevent infinite loops.
+  // Users can manually refresh using the refresh button if needed.
 
   const handleFilterChange = (key: keyof StateInspectionFilters, value: string) => {
     setFilters(prev => ({

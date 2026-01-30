@@ -1,5 +1,18 @@
 import { VinDecodedDetails } from '../types/stickers';
-import { truncateDecimalValues } from './api';
+
+// Helper for formatting
+const truncateDecimalValues = (value: string): string => {
+    if (!value) return '';
+    // If it looks like a number with decimal places
+    if (/^\d+\.\d+$/.test(value)) {
+        const num = parseFloat(value);
+        if (!isNaN(num)) {
+            // Keep up to 1 decimal place if needed, or remove if .0
+            return Number(num.toFixed(1)).toString();
+        }
+    }
+    return value;
+};
 
 export class VinDecoderService {
   static async decodeVin(vin: string): Promise<VinDecodedDetails> {
@@ -17,12 +30,11 @@ export class VinDecoderService {
         throw new Error('Invalid VIN format. VIN contains invalid characters.');
       }
 
-      // Use backend proxy for comprehensive vehicle data
-      const response = await fetch(`${window.location.protocol}//${window.location.hostname}:5001/api/vin/decode/${cleanVin}`);
+      // Call NHTSA API directly (CORS enabled)
+      const response = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/${cleanVin}?format=json`);
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || `VIN decode request failed: ${response.status}`);
+        throw new Error(`VIN decode request failed: ${response.status}`);
       }
 
       const data = await response.json();

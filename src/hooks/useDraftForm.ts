@@ -10,7 +10,7 @@ import { QuickCheckForm, ImageUpload } from '../types/quickCheck';
 import { useNotification } from './useNotification';
 
 interface DraftFormState {
-  draftId: number | null;
+  draftId: string | number | null;
   status: 'idle' | 'loading' | 'creating' | 'updating' | 'error';
   error: string | null;
   lastSave: Date | null;
@@ -18,12 +18,12 @@ interface DraftFormState {
 }
 
 interface DraftFormActions {
-  createDraft: (form: QuickCheckForm) => Promise<number | null>;
+  createDraft: (form: QuickCheckForm) => Promise<string | number | null>;
   updateDraft: (form: QuickCheckForm) => Promise<void>;
   deleteDraft: () => Promise<void>;
   submitDraft: (form: QuickCheckForm) => Promise<void>;
   cancelDraft: (action: 'delete' | 'archive') => Promise<void>;
-  loadForm: (draftId: number) => Promise<QuickCheckForm | null>;
+  loadForm: (draftId: string | number) => Promise<QuickCheckForm | null>;
 }
 
 interface UseDraftFormProps {
@@ -47,7 +47,7 @@ const DRAFT_SESSION_KEY = 'quickcheck_draft_session';
 
 const generateSessionId = () => `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-const getSessionLock = (): { userId: string; draftId: number; sessionId: string } | null => {
+const getSessionLock = (): { userId: string; draftId: string | number; sessionId: string } | null => {
   try {
     const lock = sessionStorage.getItem(DRAFT_LOCK_KEY);
     return lock ? JSON.parse(lock) : null;
@@ -56,7 +56,7 @@ const getSessionLock = (): { userId: string; draftId: number; sessionId: string 
   }
 };
 
-const setSessionLock = (userId: string, draftId: number, sessionId: string) => {
+const setSessionLock = (userId: string, draftId: string | number, sessionId: string) => {
   const lockData = { userId, draftId, sessionId, timestamp: Date.now() };
   sessionStorage.setItem(DRAFT_LOCK_KEY, JSON.stringify(lockData));
   sessionStorage.setItem(DRAFT_SESSION_KEY, sessionId);
@@ -202,7 +202,7 @@ export const useDraftForm = ({
   }, []);
 
   // Create new draft
-  const createDraft = useCallback(async (form: QuickCheckForm): Promise<number | null> => {
+  const createDraft = useCallback(async (form: QuickCheckForm): Promise<string | number | null> => {
     console.log('🔄 createDraft called');
     
     if (!userId) {
@@ -314,6 +314,13 @@ export const useDraftForm = ({
       
       if (!draft) {
         setState(prev => ({ ...prev, status: 'error', error: 'Draft not found' }));
+        return null;
+      }
+
+      // Check if draft.data exists and is valid
+      if (!draft.data || draft.data === 'undefined') {
+        console.warn('⚠️ Draft has no data, skipping load');
+        setState(prev => ({ ...prev, status: 'error', error: 'Draft data is empty' }));
         return null;
       }
 

@@ -791,61 +791,8 @@ const QuickCheck: React.FC = () => {
     try {
       const processedFile = isHEICFile(file) ? await convertHEICToJPEG(file) : file;
       
-      const uploadResult = await uploadImageToServer(processedFile, (verifiedResult: ImageUploadResult) => {
-        console.log(`🔄 Image verification completed for ${type}:`, verifiedResult.status);
-        
-        // Update form with verified results - now using relative path
-        const updateImageField = (fieldName: string) => {
-          setForm(f => {
-            const fieldValue = f[fieldName as keyof QuickCheckForm];
-            // Type guard to ensure field is an array with map method
-            if (Array.isArray(fieldValue)) {
-              return {
-                ...f,
-                [fieldName]: fieldValue.map((img: any) => 
-                  img.url === verifiedResult.previewUrl ? { ...img, url: verifiedResult.serverUrl } : img
-                )
-              };
-            }
-            return f;
-          });
-        };
-        
-        // Update appropriate field based on type
-        if (type === 'dashLights') updateImageField('dash_lights_photos');
-        else if (type === 'mileage') updateImageField('mileage_photos');
-        else if (type === 'windshield_condition') updateImageField('windshield_condition_photos');
-        else if (type === 'wiper_blades') updateImageField('wiper_blades_photos');
-        else if (type === 'washer_squirters') updateImageField('washer_squirters_photos');
-        else if (type === 'vin') updateImageField('vin_photos');
-        else if (type === 'state_inspection_status') updateImageField('state_inspection_status_photos');
-        else if (type === 'state_inspection_date_code') updateImageField('state_inspection_date_code_photos');
-        else if (type === 'battery_date_code') updateImageField('battery_date_code_photos');
-        else if (type === 'tire_repair_status') updateImageField('tire_repair_status_photos');
-        else if (type === 'tpms_type') updateImageField('tpms_type_photos');
-        else if (type === 'front_brake_pads') updateImageField('front_brake_pads_photos');
-        else if (type === 'rear_brake_pads') updateImageField('rear_brake_pads_photos');
-        else if (type === 'tpms_placard') updateImageField('tpms_placard');
-        else if (type === 'engine_air_filter') updateImageField('engine_air_filter_photo');
-        else if (type === 'battery') updateImageField('battery_photos');
-        else if (type === 'tpms_tool') updateImageField('tpms_tool_photo');
-        else if (type === 'washer_fluid') updateImageField('washer_fluid_photo');
-        else if (type === 'front_brakes') updateImageField('front_brakes');
-        else if (type === 'rear_brakes') updateImageField('rear_brakes');
-        else if (type === 'undercarriage_photos') updateImageField('undercarriage_photos');
-        else if (['passenger_front', 'driver_front', 'driver_rear', 'passenger_rear', 'driver_rear_inner', 'passenger_rear_inner', 'spare'].includes(type)) {
-          setForm(f => ({
-            ...f,
-            tire_photos: f.tire_photos.map(p => 
-              p.type === type 
-                ? { ...p, photos: p.photos.map(img => 
-                    img.url === verifiedResult.previewUrl ? { ...img, url: verifiedResult.serverUrl } : img
-                  )}
-                : p
-            )
-          }));
-        }
-      });
+      // Upload to 'quick_check_images' folder
+      const uploadResult = await uploadImageToServer(processedFile, 'quick_check_images');
       
       if (!uploadResult.success) {
         setError(uploadResult.error || 'Failed to upload image');
@@ -1078,22 +1025,8 @@ const QuickCheck: React.FC = () => {
     try {
       const processedFile = isHEICFile(file) ? await convertHEICToJPEG(file) : file;
       
-      const uploadResult = await uploadImageToServer(processedFile, (verifiedResult: ImageUploadResult) => {
-        console.log(`🔄 Tire image verification completed for ${position}/${imageType}:`, verifiedResult.status);
-        
-        setForm(f => ({
-          ...f,
-          tire_repair_images: {
-            ...f.tire_repair_images,
-            [position]: {
-              ...f.tire_repair_images[position as keyof typeof f.tire_repair_images],
-              [imageType]: f.tire_repair_images[position as keyof typeof f.tire_repair_images][imageType].map(img => 
-                img.url === verifiedResult.previewUrl ? { ...img, url: verifiedResult.serverUrl } : img
-              )
-            }
-          }
-        }));
-      });
+      // Upload to 'tire_images' folder
+      const uploadResult = await uploadImageToServer(processedFile, 'tire_images');
       
       if (!uploadResult.success) {
         setError(uploadResult.error || 'Failed to upload tire image');

@@ -11,6 +11,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 // Pages
 import Login from './pages/Login';
+import Register from './pages/Register';
 import Home from './pages/Home';
 import InspectionForm from './pages/InspectionForm';
 import Profile from './pages/Profile';
@@ -30,6 +31,7 @@ import DrawerCountForm from './pages/DrawerCountForm';
 import DrawerSettings from './pages/DrawerSettings';
 import CashAnalytics from './pages/CashAnalytics';
 import StateInspectionRecords from './pages/StateInspectionRecords';
+import Chat from './pages/Chat';
 
 function App() {
   // Initialize token manager on app start
@@ -46,6 +48,7 @@ function App() {
             <Routes>
               {/* Login Route */}
               <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
               
               {/* Protected Routes */}
               <Route
@@ -74,6 +77,7 @@ function App() {
                         <Route path="/drawer-count" element={<DrawerCountForm />} />
                         <Route path="/drawer-settings" element={<DrawerSettings />} />
                         <Route path="/cash-analytics" element={<CashAnalytics />} />
+                        <Route path="/chat" element={<Chat />} />
                       </Routes>
                     </Layout>
                   </ProtectedRoute>

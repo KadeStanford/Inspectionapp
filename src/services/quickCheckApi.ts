@@ -1,4 +1,5 @@
-import axios from 'axios';
+import { db } from './firebase';
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, orderBy, getDoc } from 'firebase/firestore';
 
 interface QuickCheckResponse {
   id: number;
@@ -13,71 +14,42 @@ interface ApiResponse<T> {
   data: T;
 }
 
-const getApiBaseUrl = () => {
-  // Use environment variable if set, otherwise use dynamic protocol detection
-  const envUrl = import.meta.env.VITE_API_BASE_URL;
-  if (envUrl) {
-    return `${envUrl}/api`;
-  }
-  
-  // Use HTTPS if the frontend is served over HTTPS, otherwise use HTTP
-  const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
-  return `${protocol}://${window.location.hostname}:5001/api`;
-};
-
-// Create a simple axios instance
-const apiClient = axios.create({
-  baseURL: getApiBaseUrl(),
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  withCredentials: true
-});
-
-// Add auth token to requests
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Handle auth errors
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
 // Simple submit function
 export const submitQuickCheck = async (formData: FormData): Promise<QuickCheckResponse> => {
-  for (let pair of formData.entries()) {
-    console.log(pair[0], pair[1]);
-  }
-  const response = await apiClient.post<ApiResponse<QuickCheckResponse>>('/quick-checks', formData);
-  return response.data.data;
+  if (!db) throw new Error("Firebase not initialized");
+  
+  const data: any = {};
+  formData.forEach((value, key) => {
+    data[key] = value;
+  });
+
+  const docRef = await addDoc(collection(db, 'quick_checks'), {
+    ...data,
+    created_at: new Date().toISOString()
+  });
+
+  return {
+    id: docRef.id as any, // Cast for compatibility if types expect number
+    user_email: data.user_email,
+    user_name: data.user_name,
+    title: data.title,
+    data: data.data || JSON.stringify(data),
+    created_at: new Date().toISOString()
+  };
 };
 
 // Simple get history function
 export const getQuickCheckHistory = async (): Promise<any[]> => {
-  const response = await apiClient.get<ApiResponse<any[]>>('/quick-checks/history');
-  return response.data.data;
+  if (!db) throw new Error("Firebase not initialized");
+  const q = query(collection(db, 'quick_checks'), orderBy("created_at", "desc"));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 };
 
 // Delete a quick check by ID
-export const deleteQuickCheck = async (id: number): Promise<void> => {
-  await apiClient.delete(`/quick-checks/${id}`);
+export const deleteQuickCheck = async (id: number | string): Promise<void> => {
+  if (!db) throw new Error("Firebase not initialized");
+  await deleteDoc(doc(db, 'quick_checks', String(id)));
 };
 
 // Export a simple API object
@@ -87,4 +59,4 @@ export const quickCheckApi = {
   delete: deleteQuickCheck
 };
 
-export default quickCheckApi; 
+export default quickCheckApi;

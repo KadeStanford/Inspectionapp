@@ -1,38 +1,36 @@
 // 🧠 Cursor: Firebase service with proper imports now that firebase package is installed
 // Previous fallback implementations replaced with real Firebase imports
 
-// Temporarily commenting out Firebase imports to fix build errors
-// import { initializeApp } from 'firebase/app';
-// import { getFirestore } from 'firebase/firestore';
-// import { getStorage } from 'firebase/storage';
-// import { getAuth } from 'firebase/auth';
+import { initializeApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
+import { getAuth } from 'firebase/auth';
 
-// Fallback implementations for build
-const initializeApp = (config: any) => null;
-const getFirestore = (app?: any) => null;
-const getStorage = (app?: any) => null;
-const getAuth = (app?: any) => null;
-
-// Initialize Firebase with environment variables
+// ------------------------------------------------------------------
+// 🔑 FIREBASE CONFIGURATION
+// ------------------------------------------------------------------
 const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY,
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.VITE_FIREBASE_APP_ID
+  apiKey: "AIzaSyAz0-E7LMtIDMpMI4l_QGOSLltNu7XQqAg",
+  authDomain: "inspectionapp-3091a.firebaseapp.com",
+  projectId: "inspectionapp-3091a",
+  storageBucket: "inspectionapp-3091a.firebasestorage.app",
+  messagingSenderId: "43595428884",
+  appId: "1:43595428884:web:e73ecc0053c65519c7a301",
+  measurementId: "G-L50EQ3PFRB"
 };
 
-// Initialize Firebase (fallback for build)
-const app = firebaseConfig.apiKey ? initializeApp(firebaseConfig) : null;
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase services with fallbacks
-export const db = app ? getFirestore(app) : null;
-export const storage = app ? getStorage(app) : null;
-export const auth = app ? getAuth(app) : null;
+// Initialize Firebase services
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+export const auth = getAuth(app);
 
 // Export for compatibility
 export { app };
+
+
 
 // Fallback implementations for when Firebase is not available
 export const mockAuth = {

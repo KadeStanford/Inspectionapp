@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- Helper Functions ---
+    
+    // Check if user is signed in
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user is an admin (requires 'role' field on user document)
+    function isAdmin() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // --- Collection Rules ---
+
+    // Users: Users can read/write their own profile; Admins can read/write all
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      // For development simplicity, allow any auth user to read user profiles if above fails
+      // allow read: if isAuthenticated(); 
+    }
+
+    // State Inspections: Authenticated users can read/write
+    match /state_inspections/{inspectionId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Fleet Accounts: Authenticated users can read/write
+    match /fleet_accounts/{accountId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Quick Checks: Authenticated users can read/write
+    match /quick_checks/{checkId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Chat: Authenticated users can read/write
+    match /chats/{chatId} {
+        allow read, write: if isAuthenticated();
+    }
+    
+    // Messages (Subcollection of Chats)
+    match /chats/{chatId}/messages/{messageId} {
+        allow read, write: if isAuthenticated();
+    }
+    
+    // Default fallback: Allow authenticated users to read/write anything else during development
+    // Be careful with this in production!
+    match /{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}

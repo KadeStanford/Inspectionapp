@@ -15,7 +15,7 @@ import {
   DialogActions,
   Fab
 } from '@mui/material';
-import { login } from '../services/api';
+import { login } from '../services/auth';
 import SafariCompatibilityWarning from '../components/SafariCompatibilityWarning';
 import { logLoginAttempt, showSafariAlert, detectBrowser, testStorage } from '../services/safariDebug';
 import { runQuickSafariDebug, showSimpleStorageInfo } from '../services/simpleSafariDebug';

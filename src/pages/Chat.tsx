@@ -140,9 +140,14 @@ const Chat: React.FC = () => {
     try {
       setError(null);
       const messagesData = await getChatMessages(conversationId);
-      setMessages(messagesData);
+      // Filter out any invalid messages
+      const validMessages = Array.isArray(messagesData) 
+        ? messagesData.filter(msg => msg && msg.sender_email)
+        : [];
+      setMessages(validMessages);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to load messages');
+      setMessages([]);
     }
   };
 
@@ -416,9 +421,9 @@ const Chat: React.FC = () => {
                   </Box>
                 ) : (
                   <List sx={{ py: 0 }}>
-                    {messages.map((message, index) => {
+                    {messages.filter(msg => msg && msg.sender_email).map((message, index, filteredMessages) => {
                       const isOwn = isCurrentUser(message.sender_email);
-                      const showAvatar = index === 0 || messages[index - 1].sender_email !== message.sender_email;
+                      const showAvatar = index === 0 || filteredMessages[index - 1]?.sender_email !== message.sender_email;
                       
                       return (
                         <ListItem
