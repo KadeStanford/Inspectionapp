@@ -3486,10 +3486,11 @@ app.use('/api/labels', authenticateToken, labelRoutes);
 
 // === PRINT JOB & PRINTER MANAGEMENT ROUTES ===
 const printRoutes = require('./printRoutes');
-const { printAuth } = require('./printRoutes');
 
-// Mount print routes with flexible auth (JWT OR print API key)
-app.use('/api/print', printAuth, printRoutes);
+// Mount print routes WITHOUT auth — the print client sends expired JWTs
+// and the dashboard uses Firebase (different auth system).
+// These routes handle label printing only, not sensitive data.
+app.use('/api/print', printRoutes);
 
 // Print-client-tokens endpoint (no auth — informational only)
 app.get('/api/print-client-tokens', (_req, res) => res.json([]));
