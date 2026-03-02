@@ -2,9 +2,59 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs').promises;
 const path = require('path');
+const jwt = require('jsonwebtoken');
 const logger = require('./logger');
 
 const router = express.Router();
+
+// ── Print API Key ───────────────────────────────────────────────────
+// Shared secret used by the dashboard and print client as an
+// alternative to JWT tokens.  Set PRINT_API_KEY env var in production
+// or use the default below (change it for your deployment).
+const PRINT_API_KEY = process.env.PRINT_API_KEY || 'QL-print-2026-a7f3b9c1d4e8';
+const JWT_SECRET    = process.env.JWT_SECRET    || 'your-secret-key';
+
+/**
+ * Flexible auth middleware for print routes.
+ * Accepts ANY of the following (checked in order):
+ *   1. Valid JWT in  Authorization: Bearer <token>
+ *   2. Print API key in  X-Print-Key: <key>
+ *   3. Print API key in  Authorization: PrintKey <key>
+ * If none match → 401.
+ */
+const printAuth = (req, res, next) => {
+  // --- Try JWT first ------------------------------------------------
+  const authHeader = req.headers['authorization'] || '';
+  const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+  if (bearerToken) {
+    try {
+      const decoded = jwt.verify(bearerToken, JWT_SECRET);
+      req.user = decoded;          // attach user info like authenticateToken does
+      return next();
+    } catch (_e) {
+      // JWT invalid/expired — fall through to API-key check
+    }
+  }
+
+  // --- Try X-Print-Key header ---------------------------------------
+  const printKeyHeader = req.headers['x-print-key'];
+  if (printKeyHeader && printKeyHeader === PRINT_API_KEY) {
+    req.user = { email: 'print-api-key', name: 'Print API Key', role: 'PrintClient' };
+    return next();
+  }
+
+  // --- Try "Authorization: PrintKey <key>" --------------------------
+  if (authHeader.startsWith('PrintKey ')) {
+    const key = authHeader.slice(9);
+    if (key === PRINT_API_KEY) {
+      req.user = { email: 'print-api-key', name: 'Print API Key', role: 'PrintClient' };
+      return next();
+    }
+  }
+
+  return res.status(401).json({ error: 'Authentication required — provide JWT or X-Print-Key' });
+};
 
 // ── Database files ──────────────────────────────────────────────────
 const PRINT_JOBS_DB   = path.join(__dirname, 'print-jobs.json');
@@ -400,3 +450,4 @@ router.get('/print-client-tokens', async (_req, res) => {
 });
 
 module.exports = router;
+module.exports.printAuth = printAuth;

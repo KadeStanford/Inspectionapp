@@ -137,7 +137,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-shopmonkey-token']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-shopmonkey-token', 'X-Print-Key']
 }));
 
 // Serve static files from uploads directory with absolute path
@@ -3486,9 +3486,10 @@ app.use('/api/labels', authenticateToken, labelRoutes);
 
 // === PRINT JOB & PRINTER MANAGEMENT ROUTES ===
 const printRoutes = require('./printRoutes');
+const { printAuth } = require('./printRoutes');
 
-// Mount print routes with authentication
-app.use('/api/print', authenticateToken, printRoutes);
+// Mount print routes with flexible auth (JWT OR print API key)
+app.use('/api/print', printAuth, printRoutes);
 
 // Print-client-tokens endpoint (no auth — informational only)
 app.get('/api/print-client-tokens', (_req, res) => res.json([]));
