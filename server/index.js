@@ -110,6 +110,8 @@ app.use(cors({
           /^https:\/\/.*\.vercel\.app$/, // Any Vercel preview URLs
           /^https:\/\/.*\.onrender\.com$/, // Render domains (for monolith deployment)
           'https://inspectionapp-backend.onrender.com', // Specific Render domain
+          'https://qualitytirelube.com', // Quality Tire Admin Dashboard
+          'https://www.qualitytirelube.com', // Quality Tire Admin Dashboard (www)
         ]
       : [
           /^https?:\/\/(localhost|127\.0\.0\.1|\d+\.\d+\.\d+\.\d+):3000$/ // Development
@@ -3481,6 +3483,15 @@ const labelRoutes = require('./labelRoutes');
 
 // Mount label routes with authentication
 app.use('/api/labels', authenticateToken, labelRoutes);
+
+// === PRINT JOB & PRINTER MANAGEMENT ROUTES ===
+const printRoutes = require('./printRoutes');
+
+// Mount print routes with authentication
+app.use('/api/print', authenticateToken, printRoutes);
+
+// Print-client-tokens endpoint (no auth — informational only)
+app.get('/api/print-client-tokens', (_req, res) => res.json([]));
 
 // === CASH MANAGEMENT ROUTES ===
 // Note: Cash management routes are now initialized in the database connection section above
