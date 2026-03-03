@@ -93,12 +93,10 @@ if (isProduction) {
 }
 
 // === Middleware ===
-// Increase body size limit for image data
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Dynamic CORS configuration
-app.use(cors({
+// Dynamic CORS configuration — MUST be before body parsers so preflight
+// OPTIONS requests get proper headers even if body parsing fails.
+const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
@@ -138,7 +136,18 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-shopmonkey-token', 'X-Print-Key']
-}));
+};
+
+// Explicit preflight handler — responds to every OPTIONS request immediately
+// with the correct CORS headers (avoids issues with downstream middleware/routes).
+app.options('*', cors(corsOptions));
+
+// Apply CORS to all requests
+app.use(cors(corsOptions));
+
+// Increase body size limit for image data
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Serve static files from uploads directory with absolute path
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
